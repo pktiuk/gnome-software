@@ -5,6 +5,7 @@ RUN apt-get update -qq && apt-get install --no-install-recommends -y \
     appstream-util \
     clang \
     clang-tools-9 \
+    cmake \
     dbus \
     desktop-file-utils \
     docbook-xsl \
@@ -23,6 +24,7 @@ RUN apt-get update -qq && apt-get install --no-install-recommends -y \
     libappstream-dev \
     libappstream-glib-dev \
     libflatpak-dev \
+    libfuse-dev \
     libfwupd-dev \
     libgirepository1.0-dev \
     libglib2.0-dev \
@@ -37,10 +39,13 @@ RUN apt-get update -qq && apt-get install --no-install-recommends -y \
     libpam0g-dev \
     libpolkit-gobject-1-dev \
     libsoup2.4-dev \
+    librsvg2-dev \
     libstemmer-dev \
+    libx11-dev \
     libxmlb-dev \
     libxml2-utils \
     libyaml-dev \
+    libz-dev \
     ninja-build \
     packagekit \
     pkg-config \
@@ -65,6 +70,24 @@ RUN pip3 install meson==0.50.0
 
 # Enable passwordless sudo for sudo users
 RUN sed -i -e '/%sudo/s/ALL$/NOPASSWD: ALL/' /etc/sudoers
+
+# Build and install libappimageupdate and libappimage
+RUN git clone --recursive https://github.com/AppImage/AppImageUpdate \
+    cd AppImageUpdate/ \
+    mkdir build/ \
+    cd build/ \
+    cmake -DBUILD_QT_UI=OFF -DCMAKE_INSTALL_PREFIX=/usr .. \
+    make -j$(nproc)  \
+    make install \
+    cd .. \
+    git clone --recursive https://github.com/AppImage/AppImageKit \
+    cd AppImageKit/ \
+    mkdir build/ \
+    cd build/ \
+    cmake -DUSE_SYSTEM_XZ=ON -DUSE_SYSTEM_INOTIFY_TOOLS=ON -DUSE_SYSTEM_LIBARCHIVE=ON -DUSE_SYSTEM_GTEST=OFF -DCMAKE_INSTALL_PREFIX=/usr .. \
+    make -j$(nproc) \
+    make install
+
 
 ARG HOST_USER_ID=5555
 ENV HOST_USER_ID ${HOST_USER_ID}
