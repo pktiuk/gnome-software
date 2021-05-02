@@ -4,3 +4,10 @@ subprojects/libhandy/
 subprojects/libxmlb/
 subprojects/malcontent/
 subprojects/sysprof/
+
+
+/.vscode
+builddir
+.gitignore
+/build
+/install
