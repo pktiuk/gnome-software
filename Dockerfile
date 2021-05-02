@@ -1,6 +1,6 @@
 FROM debian:bullseye
 
-RUN apt-get update -qq && apt-get install --no-install-recommends -qq -y \
+RUN apt-get update -qq && apt-get install --no-install-recommends -y \
     appstream \
     appstream-util \
     clang \
@@ -22,7 +22,6 @@ RUN apt-get update -qq && apt-get install --no-install-recommends -qq -y \
     libaccountsservice-dev \
     libappstream-dev \
     libappstream-glib-dev \
-    libcurl4-openssl-dev \
     libflatpak-dev \
     libfwupd-dev \
     libgirepository1.0-dev \
