@@ -70,6 +70,7 @@ RUN apt-get update -qq && apt-get install --no-install-recommends -y \
     gnome-software \
     gnome-software-dev \
     npm \
+    valac \
     && rm -rf /usr/share/doc/* /usr/share/man/*
 
 RUN pip3 install meson==0.50.0

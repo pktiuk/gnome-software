@@ -19,6 +19,7 @@
 		"xaver.clang-format",
 		"mhutchie.git-graph",
 		"rubymaniac.vscode-paste-and-indent",
+		"ms-vscode.cpptools",
 	],
 	"runArgs": [
 		"--net=host"
