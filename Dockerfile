@@ -3,6 +3,8 @@ FROM debian:bullseye
 RUN apt-get update -qq && apt-get install --no-install-recommends -y \
     appstream \
     appstream-util \
+    automake \
+    autotools-dev \
     clang \
     clang-tools-9 \
     cmake \
@@ -23,6 +25,7 @@ RUN apt-get update -qq && apt-get install --no-install-recommends -y \
     libaccountsservice-dev \
     libappstream-dev \
     libappstream-glib-dev \
+    libarchive-dev \
     libflatpak-dev \
     libfuse-dev \
     libfwupd-dev \
@@ -61,6 +64,9 @@ RUN apt-get update -qq && apt-get install --no-install-recommends -y \
     wget \
     xsltproc \
     xz-utils \
+    libtool \
+    xxd \
+    liblzma-dev \
     gnome-software \
     gnome-software-dev \
     npm \
@@ -72,20 +78,19 @@ RUN pip3 install meson==0.50.0
 RUN sed -i -e '/%sudo/s/ALL$/NOPASSWD: ALL/' /etc/sudoers
 
 # Build and install libappimageupdate and libappimage
-RUN git clone --recursive https://github.com/AppImage/AppImageUpdate \
-    cd AppImageUpdate/ \
-    mkdir build/ \
-    cd build/ \
-    cmake -DBUILD_QT_UI=OFF -DCMAKE_INSTALL_PREFIX=/usr .. \
-    make -j$(nproc)  \
-    make install \
-    cd .. \
-    git clone --recursive https://github.com/AppImage/AppImageKit \
-    cd AppImageKit/ \
-    mkdir build/ \
-    cd build/ \
-    cmake -DUSE_SYSTEM_XZ=ON -DUSE_SYSTEM_INOTIFY_TOOLS=ON -DUSE_SYSTEM_LIBARCHIVE=ON -DUSE_SYSTEM_GTEST=OFF -DCMAKE_INSTALL_PREFIX=/usr .. \
-    make -j$(nproc) \
+RUN git clone --recursive https://github.com/AppImage/AppImageUpdate &&\
+    mkdir AppImageUpdate/build/ &&\
+    cd AppImageUpdate/build/ &&\
+    cmake -DBUILD_QT_UI=OFF -DCMAKE_INSTALL_PREFIX=/usr .. &&\
+    make -j$(nproc)  &&\
+    make install &&\
+    cd ../..
+
+RUN git clone --recursive https://github.com/AppImage/AppImageKit &&\
+    mkdir AppImageKit/build/ &&\
+    cd AppImageKit/build/ &&\
+    cmake -DUSE_SYSTEM_XZ=ON -DUSE_SYSTEM_INOTIFY_TOOLS=ON -DUSE_SYSTEM_LIBARCHIVE=ON -DUSE_SYSTEM_GTEST=OFF -DCMAKE_INSTALL_PREFIX=/usr .. &&\
+    make -j$(nproc) &&\
     make install
 
 
