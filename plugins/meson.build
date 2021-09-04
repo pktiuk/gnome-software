@@ -41,3 +41,6 @@ endif
 if get_option('webapps')
   subdir('epiphany')
 endif
+if get_option('appimage')
+  subdir('appimage')
+endif

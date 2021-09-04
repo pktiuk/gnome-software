@@ -268,6 +268,10 @@ if get_option('hardcoded_proprietary_webapps')
   )
 endif
 
+if get_option('appimage')
+  flatpak = dependency('flatpak', version : '>= 1.0.4')
+endif
+
 gnome = import('gnome')
 i18n = import('i18n')
 
