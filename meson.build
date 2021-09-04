@@ -241,6 +241,10 @@ if get_option('snap')
   snap = dependency('snapd-glib', version : '>= 1.50')
 endif
 
+if get_option('appimage')
+  flatpak = dependency('flatpak', version : '>= 1.0.4')
+endif
+
 gnome = import('gnome')
 i18n = import('i18n')
 
