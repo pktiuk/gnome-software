@@ -242,7 +242,7 @@ if get_option('snap')
 endif
 
 if get_option('appimage')
-  flatpak = dependency('flatpak', version : '>= 1.0.4')
+  libappimage = dependency('libappimage')
 endif
 
 gnome = import('gnome')
