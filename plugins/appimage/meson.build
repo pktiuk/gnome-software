@@ -12,6 +12,6 @@ shared_module(
   install : true,
   install_dir: plugin_dir,
   c_args : cargs,
-  dependencies : [plugin_libs],
+  dependencies : [plugin_libs, libappimage],
 )
 
