@@ -264,8 +264,9 @@ gboolean gs_plugin_add_installed (GsPlugin *plugin,
 
 			g_autofree gchar *file_path = g_build_filename (
 				searched_path, filename, NULL);
-			g_debug ("Found matching desktop file: %s", file_path);
-			g_autoptr (GsApp) app = gs_app_new ("xxxxx");
+
+			/*Use filename without prefix as a base id*/
+			g_autoptr (GsApp) app = gs_app_new (filename + 45);
 			load_from_desktop_file (app, file_path, error, TRUE);
 			gs_app_set_scope (
 				app,
