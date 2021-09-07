@@ -7,6 +7,8 @@
 #include <gnome-software.h>
 #include <sys/stat.h>
 
+#include "gs-appimage-utils.h"
+
 void gs_plugin_initialize (GsPlugin *plugin)
 {
 	g_debug ("AppImage gs_plugin_initialize");
@@ -83,31 +85,14 @@ gboolean gs_plugin_file_to_app (GsPlugin *plugin,
 	appimage_extract_file_following_symlinks (
 		g_file_get_path (file), desktop_file, extracted_desktop_file);
 
-	/* Load contents of desktop file */
-	gboolean success = FALSE;
-	GKeyFile *key_file_structure = g_key_file_new();
 
-	/* QUESTION: Do we need to load desktop files like this?
-	 * hughsie: appstream-glib can do that work
-	 */
-	g_debug ("Loading AppImage desktop file from %s",
-		 extracted_desktop_file);
-	success = g_key_file_load_from_file (
-		key_file_structure,
-		extracted_desktop_file,
-		G_KEY_FILE_KEEP_COMMENTS | G_KEY_FILE_KEEP_TRANSLATIONS,
-		NULL);
-	if (!success) {
-		g_debug ("AppImage desktop file could not be loaded");
-		appimage_string_list_free (files);
-		return FALSE;
-	} else {
-		g_debug ("Loaded AppImage desktop file"); // QUESTION: Can we
-							  // directly
-							  // gs_app_new() from
-							  // this? hughsie: use
-							  // appstream-glib
-	}
+	g_autoptr (GsApp) app = NULL;
+	app = gs_app_new (
+		"NULL"); // NOTE: We set the ID down below, including the md5
+			 // from appimage_get_md5. hughsie recommends reverse
+			 // DNS, and it should match the desktop file and the id
+			 // in the AppStream XML
+	load_from_desktop_file (app, extracted_desktop_file);
 
 	/* TODO: AppStream
 	 *    Save an AppStream-format XML file in either
@@ -194,13 +179,7 @@ gboolean gs_plugin_file_to_app (GsPlugin *plugin,
 	}
 
 	g_autofree gchar *fn = NULL;
-	g_autoptr (GsApp) app = NULL;
 
-	app = gs_app_new (
-		"NULL"); // NOTE: We set the ID down below, including the md5
-			 // from appimage_get_md5. hughsie recommends reverse
-			 // DNS, and it should match the desktop file and the id
-			 // in the AppStream XML
 	gs_app_set_scope (app, AS_COMPONENT_SCOPE_USER);
 	gs_app_set_management_plugin (app, "appimage");
 	gs_app_set_kind (app, AS_COMPONENT_KIND_DESKTOP_APP);
@@ -210,33 +189,7 @@ gboolean gs_plugin_file_to_app (GsPlugin *plugin,
 	// mark "3rd party"? hughsie: PROVENANCE usually means the opposite,
 	// e.g. it's from the distro gs_app_set_state (app,
 	// GS_APP_STATE_AVAILABLE_LOCAL);
-	gs_app_set_name (app,
-			 GS_APP_QUALITY_NORMAL,
-			 g_key_file_get_value (key_file_structure,
-					       G_KEY_FILE_DESKTOP_GROUP,
-					       G_KEY_FILE_DESKTOP_KEY_NAME,
-					       NULL));
-	gs_app_set_summary (
-		app,
-		GS_APP_QUALITY_NORMAL,
-		g_key_file_get_value (key_file_structure,
-				      G_KEY_FILE_DESKTOP_GROUP,
-				      G_KEY_FILE_DESKTOP_KEY_COMMENT,
-				      NULL));
-	gs_app_set_description (
-		app,
-		GS_APP_QUALITY_NORMAL,
-		g_key_file_get_value (key_file_structure,
-				      G_KEY_FILE_DESKTOP_GROUP,
-				      G_KEY_FILE_DESKTOP_KEY_COMMENT,
-				      NULL));
 
-	/* these are all optional, but make details page look better */
-	gs_app_set_version (app,
-			    g_key_file_get_value (key_file_structure,
-						  G_KEY_FILE_DESKTOP_GROUP,
-						  "X-AppImage-Version",
-						  NULL));
 
 	/* Get the size of the AppImage on disk */
 	struct stat st;
@@ -284,7 +237,6 @@ gboolean gs_plugin_file_to_app (GsPlugin *plugin,
 	/* return new app */
 	gs_app_list_add (list, app);
 
-	g_key_file_free (key_file_structure);
 	// appimage_string_list_free(files); // FIXME: This results in a
 	// segfault!
 
