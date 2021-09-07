@@ -92,7 +92,7 @@ gboolean gs_plugin_file_to_app (GsPlugin *plugin,
 			 // from appimage_get_md5. hughsie recommends reverse
 			 // DNS, and it should match the desktop file and the id
 			 // in the AppStream XML
-	load_from_desktop_file (app, extracted_desktop_file);
+	load_from_desktop_file (app, extracted_desktop_file, error, FALSE);
 
 	/* TODO: AppStream
 	 *    Save an AppStream-format XML file in either
@@ -243,36 +243,6 @@ gboolean gs_plugin_file_to_app (GsPlugin *plugin,
 	return TRUE;
 }
 
-/*
- *
- * This works; it DOES show up in the installed list!
- *
- * QUESTION: How can I achieve a similar thing for all the desktop files of
- * already integrated AppImages that show up like this:
- *
- * 08:25:05:0456 As  adding existing file:
- * /home/me/.local/share/applications/appimagekit_96c121fd6971e6073de75aa0cdad64dd-AppImageUpdate.desktop
- * 08:25:05:0456 As  adding existing file:
- * /home/me/.local/share/applications/appimagekit_d6d51dc8061f0166e11ecd040af70e8e-AppImageUpdate.desktop
- *
- * 08:26:09:0696 GsPluginPackageKit ignoring
- * /usr/share/applications/appimagekit_96c121fd6971e6073de75aa0cdad64dd-AppImageUpdate.desktop
- * as does not exist 08:26:09:0696 GsPluginPackageKit ignoring
- * /usr/share/applications/appimagekit_d6d51dc8061f0166e11ecd040af70e8e-AppImageUpdate.desktop
- * as does not exist
- *
- * 08:26:13:0491 Gs  app invalid as state unknown user / * / * / desktop /
- * appimagekit_96c121fd6971e6073de75aa0cdad64dd-AppImageUpdate.desktop / *
- * 08:26:13:0491 Gs  app invalid as state unknown user / * / * / desktop /
- * appimagekit_d6d51dc8061f0166e11ecd040af70e8e-AppImageUpdate.desktop / *
- *
- * QUESTION: What do I have to do in order to make these show up as installed?
- * QUESTION: Why does it say "ignoring... as does not exist"?
- * QUESTION: What does "app invalid as state unknown user" mean? Probably I have
- * to set them to GS_APP_STATE_INSTALLED, but how?
- *
- */
-
 gboolean gs_plugin_add_installed (GsPlugin *plugin,
 				  GsAppList *list,
 				  GCancellable *cancellable,
@@ -280,47 +250,35 @@ gboolean gs_plugin_add_installed (GsPlugin *plugin,
 {
 	g_debug ("AppImage gs_plugin_add_installed");
 
-	g_autofree gchar *fn = NULL;
-	g_autoptr (GsApp) app = NULL;
+	g_autofree gchar *searched_path =
+		g_build_filename (g_get_user_data_dir(), "applications", NULL);
+	g_debug ("AppImage gs_plugin_add_installed");
+	g_autoptr (GDir) dir = g_dir_open (searched_path, 0, &error);
+	g_autofree gchar *filename;
 
-	// One entry will show up in the list of installed files for each
-	// DIFFERENTLY NAMED desktop file "System appstream" will be searched
-	// for metadata with matching desktop file names
-	app = gs_app_new ("aaatestapp.desktop"); // "Launch" button only
-						 // available if ID is passed in
-	gs_app_set_scope (
-		app,
-		AS_COMPONENT_SCOPE_USER); // TODO: Distinguish system-wide
-					  // AppImages. Those which are
-					  // read-only for the current user?
-	gs_app_set_management_plugin (app, "appimage");
-	gs_app_set_kind (app, AS_COMPONENT_KIND_DESKTOP_APP);
-	gs_app_set_bundle_kind (app, AS_BUNDLE_KIND_APPIMAGE);
-	gs_app_set_state (app, GS_APP_STATE_INSTALLED);
-	gs_app_set_name (app,
-			 GS_APP_QUALITY_NORMAL,
-			 "AAATestApp 1.2.3a"); // QUESTION: How to handle
-					       // multiple versions properly?
-	gs_app_set_summary (
-		app, GS_APP_QUALITY_NORMAL, "A teaching application");
-	gs_app_set_description (app,
-				GS_APP_QUALITY_NORMAL,
-				"AAATestApp is the name of an application.\n\n"
-				"It can be used to demo some of our features");
+	g_debug ("AppImage gs_plugin_add_installed");
+	while ((filename = g_dir_read_name (dir))) {
+		g_debug ("File: %s", filename);
+		if (g_str_has_prefix (filename, "appimagekit_")
+		    && g_str_has_suffix (filename, ".desktop")) {
 
-	/* create a stock icon which will be loaded by the 'icons' plugin
-	 * NOTE: Without doing this, it will NOT show up in the list of
-	 * installed files. QUESTION: Is this intentional? hughsie: yes, an app
-	 * needs an icon
-	 */
+			g_autofree gchar *file_path = g_build_filename (
+				searched_path, filename, NULL);
+			g_debug ("Found matching desktop file: %s", file_path);
+			g_autoptr (GsApp) app = gs_app_new ("xxxxx");
+			load_from_desktop_file (app, file_path, error, TRUE);
+			gs_app_set_scope (
+				app,
+				AS_COMPONENT_SCOPE_USER); // TODO: Distinguish
+							  // system-wide
+							  // AppImages. Those
+							  // which are read-only
+							  // for the current
+							  // user?
 
-	GIcon *g_icon = NULL;
-	g_icon = g_themed_icon_new ("application-x-executable");
-	gs_app_add_icon (app, g_icon);
-
-	/* return new app */
-	gs_app_list_add (list, app);
-
+			gs_app_list_add (list, app);
+		}
+	}
 	return TRUE;
 }
 
@@ -354,4 +312,5 @@ gboolean gs_plugin_add_installed (GsPlugin *plugin,
  * parse xml etc., e.g. not do it in gs_plugin_setup() if it's going to take
  * time
  *
+ * QUESTION: How to handle multiple versions properly?
  */
