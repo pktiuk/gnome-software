@@ -4,7 +4,10 @@ cargs += ['-DLOCALPLUGINDIR_CORE="' + meson.current_build_dir() + '/../core"']
 
 shared_module(
   'gs_plugin_appimage',
-  sources : 'gs-plugin-appimage.c',
+  sources : [
+    'gs-plugin-appimage.c',
+    'gs-appimage-utils.c'
+    ],
   include_directories : [
     include_directories('../..'),
     include_directories('../../lib'),
