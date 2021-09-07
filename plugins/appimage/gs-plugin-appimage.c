@@ -168,7 +168,6 @@ gboolean gs_plugin_file_to_app (GsPlugin *plugin,
 		 extracted_appstream_file);
 
 	// Extract the AppStream file from the AppImage
-	files = appimage_list_files (g_file_get_path (file));
 	g_autofree gchar *appstream_file = NULL;
 
 	for (int i = 0; files[i] != NULL; i++) {
