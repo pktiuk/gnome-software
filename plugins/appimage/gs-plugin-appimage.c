@@ -171,8 +171,9 @@ gboolean gs_plugin_file_to_app (GsPlugin *plugin,
 	g_autofree gchar *appstream_file = NULL;
 
 	for (int i = 0; files[i] != NULL; i++) {
-		// g_debug("AppImage file: %s", files[i]);
-		if (g_str_has_suffix (files[i], ".metainfo.xml")) {
+		// g_debug ("AppImage file: %s", files[i]);
+		if (g_str_has_suffix (files[i], ".metainfo.xml")
+		    || g_str_has_suffix (files[i], ".appdata.xml")) {
 			appstream_file = files[i];
 			g_debug ("AppImage AppStream file: %s", appstream_file);
 			break;
