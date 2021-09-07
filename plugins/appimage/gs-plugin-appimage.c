@@ -282,7 +282,6 @@ gboolean gs_plugin_add_installed (GsPlugin *plugin,
 
 	g_autofree gchar *fn = NULL;
 	g_autoptr (GsApp) app = NULL;
-	g_autoptr (AsIcon) icon = NULL;
 
 	// One entry will show up in the list of installed files for each
 	// DIFFERENTLY NAMED desktop file "System appstream" will be searched
@@ -314,10 +313,10 @@ gboolean gs_plugin_add_installed (GsPlugin *plugin,
 	 * installed files. QUESTION: Is this intentional? hughsie: yes, an app
 	 * needs an icon
 	 */
-	icon = as_icon_new();
-	as_icon_set_kind (icon, AS_ICON_KIND_STOCK);
-	as_icon_set_name (icon, "application-x-executable");
-	gs_app_add_icon (app, icon);
+
+	GIcon *g_icon = NULL;
+	g_icon = g_themed_icon_new ("application-x-executable");
+	gs_app_add_icon (app, g_icon);
 
 	/* return new app */
 	gs_app_list_add (list, app);
