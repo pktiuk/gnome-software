@@ -31,8 +31,7 @@ gboolean gs_plugin_launch (GsPlugin *plugin,
 			   GCancellable *cancellable,
 			   GError **error)
 {
-	gs_plugin_app_launch (plugin, app, error);
-	return TRUE;
+	return gs_plugin_app_launch (plugin, app, error);
 }
 
 /*
@@ -268,6 +267,8 @@ gboolean gs_plugin_add_installed (GsPlugin *plugin,
 			/*Use filename without prefix as a base id*/
 			g_autoptr (GsApp) app = gs_app_new (filename + 45);
 			load_from_desktop_file (app, file_path, error, TRUE);
+			gs_app_set_launchable (
+				app, AS_LAUNCHABLE_KIND_DESKTOP_ID, filename);
 			gs_app_set_scope (
 				app,
 				AS_COMPONENT_SCOPE_USER); // TODO: Distinguish
