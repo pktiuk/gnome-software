@@ -97,7 +97,7 @@ gboolean gs_plugin_file_to_app (GsPlugin *plugin,
 
 	/* Extract the desktop file from the AppImage */
 	char **files = appimage_list_files (g_file_get_path (file));
-	g_autofree gchar *desktop_file = NULL;
+	gchar *desktop_file = NULL;
 	gchar *extracted_desktop_file =
 		"/tmp/gs-plugin-appimage/application.desktop";
 	for (int i = 0; files[i] != NULL; i++) {
@@ -213,8 +213,6 @@ gboolean gs_plugin_file_to_app (GsPlugin *plugin,
 			appstream_file,
 			extracted_appstream_file);
 	}
-
-	g_autofree gchar *fn = NULL;
 
 	gs_app_set_scope (app, AS_COMPONENT_SCOPE_USER);
 	gs_app_set_management_plugin (app, "appimage");
