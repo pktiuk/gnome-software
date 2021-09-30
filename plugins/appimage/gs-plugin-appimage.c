@@ -31,6 +31,11 @@ gboolean gs_plugin_launch (GsPlugin *plugin,
 			   GCancellable *cancellable,
 			   GError **error)
 {
+
+	g_debug ("Launching app");
+	if (!gs_app_has_management_plugin(app, plugin))
+		return TRUE;
+	g_debug ("Launching gs_plugin_app_launch");
 	return gs_plugin_app_launch (plugin, app, error);
 }
 
@@ -59,6 +64,32 @@ gboolean gs_plugin_app_install (GsPlugin *plugin,
 	}
 	gs_app_set_state (app, GS_APP_STATE_PENDING_INSTALL);
 
+	return TRUE;
+}
+
+gboolean gs_plugin_app_remove (GsPlugin *plugin,
+			       GsApp *app,
+			       GCancellable *cancellable,
+			       GError **error)
+{
+	GFile *appimage_file = gs_app_get_local_file (app);
+	g_debug ("Unregistering appimage file: %s",
+		 g_file_get_path (appimage_file));
+	if (appimage_file == NULL) {
+		g_set_error (error,
+			     GS_PLUGIN_ERROR,
+			     GS_PLUGIN_ERROR_FAILED,
+			     "Missing AppImage file");
+		return FALSE;
+	}
+	gs_app_set_state (app, GS_APP_STATE_REMOVING);
+	int result = appimage_unregister_in_system (
+		g_file_get_path (appimage_file), false);
+	if (result != 0) {
+		gs_app_set_state_recover (app);
+		return FALSE;
+	}
+	gs_app_set_state (app, GS_APP_STATE_UNAVAILABLE);
 	return TRUE;
 }
 
@@ -305,6 +336,7 @@ gboolean gs_plugin_add_installed (GsPlugin *plugin,
 
 			/*Use filename without prefix as a base id*/
 			g_autoptr (GsApp) app = gs_app_new (filename + 45);
+			g_debug ("Figs_app_new filename: %s", filename);
 			load_from_desktop_file (app, file_path, error, TRUE);
 			gs_app_set_launchable (
 				app, AS_LAUNCHABLE_KIND_DESKTOP_ID, filename);
