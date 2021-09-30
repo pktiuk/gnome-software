@@ -34,6 +34,34 @@ gboolean gs_plugin_launch (GsPlugin *plugin,
 	return gs_plugin_app_launch (plugin, app, error);
 }
 
+gboolean gs_plugin_app_install (GsPlugin *plugin,
+				GsApp *app,
+				GCancellable *cancellable,
+				GError **error)
+{
+	/* only process this app if was created by this plugin */
+	if (!gs_app_has_management_plugin(app, plugin))
+		return TRUE;
+
+	const gchar *install_package = NULL;
+	install_package = gs_app_get_source_default (app);
+	g_debug ("Installing file: %s", install_package);
+	if (install_package == NULL) {
+		return FALSE;
+	}
+
+	gs_app_set_state (app, GS_APP_STATE_INSTALLING);
+	int result = appimage_register_in_system (install_package, false);
+	if (result != 0) {
+		g_debug ("registering failed %d", result);
+		gs_app_set_state_recover (app);
+		return FALSE;
+	}
+	gs_app_set_state (app, GS_APP_STATE_PENDING_INSTALL);
+
+	return TRUE;
+}
+
 /*
  * Handle AppImages "opened" with GNOME Software
  * This works; it does show the product detail page when launched like this:
@@ -225,6 +253,10 @@ gboolean gs_plugin_file_to_app (GsPlugin *plugin,
 	}
 
 	g_debug ("AppImage gs_app_is_installed: %i", gs_app_is_installed (app));
+	if (!gs_app_is_installed (app)) {
+		gs_app_add_source_id (app, "AppImage");
+		gs_app_add_source (app, g_file_get_path (file));
+	}
 	gs_app_set_origin (app, "AppImage");
 
 	// QUESTION: "Install" doesn't really cut it. For AppImages, we would
