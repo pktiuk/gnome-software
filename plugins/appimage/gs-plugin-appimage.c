@@ -86,6 +86,12 @@ gboolean gs_plugin_file_to_app (GsPlugin *plugin,
 
 	/* Error if we cannot determine the type of the AppImage */
 	if (appimage_type < 0) {
+		g_set_error (error,
+			     GS_PLUGIN_ERROR,
+			     GS_PLUGIN_ERROR_FAILED,
+			     "Invalid AppImage type: %d",
+			     appimage_type);
+		g_debug ("AppImage type");
 		return FALSE;
 	}
 
@@ -104,7 +110,10 @@ gboolean gs_plugin_file_to_app (GsPlugin *plugin,
 	}
 	/* Exit if we cannot find the desktop file */
 	if (desktop_file == NULL) {
-		g_debug ("AppImage desktop file not found");
+		g_set_error (error,
+			     GS_PLUGIN_ERROR,
+			     GS_PLUGIN_ERROR_FAILED,
+			     "AppImage desktop file not found");
 		appimage_string_list_free (files);
 		return FALSE;
 	}
