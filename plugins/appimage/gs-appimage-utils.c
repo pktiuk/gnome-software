@@ -58,6 +58,19 @@ gboolean load_from_desktop_file (GsApp *app,
 					      G_KEY_FILE_DESKTOP_KEY_ICON,
 					      error));
 		gs_app_add_icon (app, g_icon);
+		// Get executable without arguments
+		g_auto (GStrv) split = g_strsplit (
+			g_key_file_get_value (key_file_structure,
+					      G_KEY_FILE_DESKTOP_GROUP,
+					      G_KEY_FILE_DESKTOP_KEY_EXEC,
+					      error),
+			" ",
+			-1);
+		gchar *appimage_filename = split[0];
+		GFile *appimage_file =
+			g_file_new_build_filename (appimage_filename, NULL);
+
+		gs_app_set_local_file (app, appimage_file);
 	} else {
 		g_autoptr (GIcon) g_icon =
 			g_themed_icon_new ("application-x-executable");
