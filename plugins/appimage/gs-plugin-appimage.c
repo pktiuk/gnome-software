@@ -159,7 +159,11 @@ gboolean gs_plugin_file_to_app (GsPlugin *plugin,
 			 // from appimage_get_md5. hughsie recommends reverse
 			 // DNS, and it should match the desktop file and the id
 			 // in the AppStream XML
-	load_from_desktop_file (app, extracted_desktop_file, error, FALSE);
+	load_from_desktop_file (
+		app,
+		extracted_desktop_file,
+		error,
+		appimage_is_registered_in_system (g_file_get_path (file)));
 
 	/* TODO: AppStream
 	 *    Save an AppStream-format XML file in either
@@ -271,6 +275,8 @@ gboolean gs_plugin_file_to_app (GsPlugin *plugin,
 		g_strdup_printf ("applications/appimagekit_%s-%s",
 				 md5,
 				 g_path_get_basename (desktop_file));
+
+	gs_app_set_metadata (app, META_KEY_APPIMAGE_ID, partial_path + 13);
 	g_autofree gchar *appimage_integrated_desktop_file_path =
 		g_build_filename (g_get_user_data_dir(), partial_path, NULL);
 	g_autofree gchar *appimage_id =
@@ -340,6 +346,8 @@ gboolean gs_plugin_add_installed (GsPlugin *plugin,
 			g_autofree gchar *appimage_id =
 				get_id_from_desktop_filename (filename);
 			g_autoptr (GsApp) app = gs_app_new (appimage_id);
+			gs_app_set_metadata (
+				app, META_KEY_APPIMAGE_ID, filename);
 			g_debug ("Figs_app_new filename: %s", filename);
 			load_from_desktop_file (app, file_path, error, TRUE);
 			gs_app_set_launchable (
