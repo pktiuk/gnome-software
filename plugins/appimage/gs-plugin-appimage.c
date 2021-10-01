@@ -235,7 +235,6 @@ gboolean gs_plugin_file_to_app (GsPlugin *plugin,
 	if (appstream_file == NULL) {
 		g_debug (
 			"AppImage AppStream file not found in AppImage; hence not extracting");
-		appimage_string_list_free (files);
 	} else {
 		// Extract AppStream file
 		g_debug ("AppImage extracting AppStream file");
@@ -274,11 +273,15 @@ gboolean gs_plugin_file_to_app (GsPlugin *plugin,
 				 g_path_get_basename (desktop_file));
 	g_autofree gchar *appimage_integrated_desktop_file_path =
 		g_build_filename (g_get_user_data_dir(), partial_path, NULL);
-	g_autofree const gchar *appimage_id =
-		g_path_get_basename (partial_path);
+	g_autofree gchar *appimage_id =
+		get_id_from_desktop_filename (partial_path);
 	gs_app_set_id (app,
-		       appimage_id); // This makes it use the desktop file and
-				     // icon already integrated into the system
+		       appimage_id); // This makes it
+				     // use the desktop
+				     // file and icon
+				     // already
+				     // integrated into
+				     // the system
 
 	if (g_file_test (appimage_integrated_desktop_file_path,
 			 G_FILE_TEST_EXISTS)) {
@@ -334,8 +337,9 @@ gboolean gs_plugin_add_installed (GsPlugin *plugin,
 			g_autofree gchar *file_path = g_build_filename (
 				searched_path, filename, NULL);
 
-			/*Use filename without prefix as a base id*/
-			g_autoptr (GsApp) app = gs_app_new (filename + 45);
+			g_autofree gchar *appimage_id =
+				get_id_from_desktop_filename (filename);
+			g_autoptr (GsApp) app = gs_app_new (appimage_id);
 			g_debug ("Figs_app_new filename: %s", filename);
 			load_from_desktop_file (app, file_path, error, TRUE);
 			gs_app_set_launchable (
