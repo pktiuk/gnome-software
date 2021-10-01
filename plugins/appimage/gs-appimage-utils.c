@@ -84,3 +84,16 @@ gboolean load_from_desktop_file (GsApp *app,
 
 	return success;
 }
+gchar *get_id_from_desktop_filename (gchar *desktop_file_path)
+{
+	g_autofree gchar *basename = g_path_get_basename (desktop_file_path);
+	g_autoptr (GString) appimage_id = g_string_new (basename);
+	appimage_id = g_string_truncate (
+		appimage_id,
+		appimage_id->len - 8); // remove .desktop from the end
+	if (g_str_has_prefix (appimage_id->str, "appimagekit_"))
+		appimage_id = g_string_erase (
+			appimage_id, 0, APPIMAGE_NAME_PREFIX_LEN);
+
+	return g_strdup (appimage_id->str);
+}
