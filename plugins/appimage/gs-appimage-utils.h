@@ -10,6 +10,8 @@
  */
 #define APPIMAGE_NAME_PREFIX_LEN 45
 
+#define META_KEY_APPIMAGE_ID "appimage:registered_desktop_name"
+
 gboolean load_from_desktop_file (GsApp *app,
 				 gchar *desktop_file_path,
 				 GError **error,
