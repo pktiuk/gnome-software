@@ -129,8 +129,16 @@ gboolean gs_plugin_file_to_app (GsPlugin *plugin,
 	g_autoptr (GsApp) app = NULL;
 
 	if (appimage_is_registered_in_system (file_appimage_path)) {
-
-		// TODO
+		g_autofree gchar *md5 = appimage_get_md5 (file_appimage_path);
+		g_autofree gchar *desktop_file_path =
+			appimage_registered_desktop_file_path (
+				file_appimage_path, md5, false);
+		g_debug ("desktop_id: %s",
+			 g_path_get_basename (desktop_file_path));
+		app = gs_app_new_appimage (
+			g_path_get_basename (desktop_file_path));
+		if (!refine_installed_app (app, error))
+			return FALSE;
 	} else {
 		app = gs_app_new_appimage (
 			NULL); // NOTE: We set the ID down below, including the
@@ -239,9 +247,7 @@ gboolean gs_plugin_add_installed (GsPlugin *plugin,
 			g_autoptr (GsApp) app = gs_app_new_appimage (filename);
 
 			g_debug ("Figs_app_new filename: %s", filename);
-			load_from_desktop_file (app, file_path, error, TRUE);
-			gs_app_set_launchable (
-				app, AS_LAUNCHABLE_KIND_DESKTOP_ID, filename);
+			refine_installed_app (app, error);
 			gs_app_set_scope (
 				app,
 				AS_COMPONENT_SCOPE_USER); // TODO: Distinguish
