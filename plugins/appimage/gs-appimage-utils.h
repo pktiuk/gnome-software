@@ -1,5 +1,6 @@
 #pragma once
 
+#include <appimage/appimage.h>
 #include <gnome-software.h>
 
 /**
@@ -11,6 +12,16 @@
 #define APPIMAGE_NAME_PREFIX_LEN 45
 
 #define META_KEY_APPIMAGE_ID "appimage:registered_desktop_name"
+
+/**
+ * @brief Generate basic AppImage app
+ *
+ * @param appimage_id - desktop-id of AppImage when integrated, can be NULL
+ * (example:
+ * appimagekit_f61d8209e0838b3a9e4ee664ea1e4ffd-io.github.antimicrox.antimicrox.desktop)
+ * @return GsApp*
+ */
+GsApp *gs_app_new_appimage (const gchar *appimage_id);
 
 gboolean load_from_desktop_file (GsApp *app,
 				 gchar *desktop_file_path,

@@ -1,5 +1,21 @@
 #include "gs-appimage-utils.h"
 
+GsApp *gs_app_new_appimage (const gchar *appimage_id)
+{
+	GsApp *app = NULL;
+	if (appimage_id) {
+		app = gs_app_new (get_id_from_desktop_filename (appimage_id));
+		gs_app_set_metadata (app, META_KEY_APPIMAGE_ID, appimage_id);
+	} else {
+		app = gs_app_new ("NULL");
+	}
+	gs_app_set_management_plugin (app, "appimage");
+	gs_app_set_bundle_kind (app, AS_BUNDLE_KIND_APPIMAGE);
+	gs_app_set_origin (app, "AppImage");
+
+	return app;
+}
+
 gboolean load_from_desktop_file (GsApp *app,
 				 gchar *desktop_file_path,
 				 GError **error,
@@ -78,9 +94,7 @@ gboolean load_from_desktop_file (GsApp *app,
 	}
 	g_key_file_free (key_file_structure);
 
-	gs_app_set_management_plugin (app, "appimage");
 	gs_app_set_kind (app, AS_COMPONENT_KIND_DESKTOP_APP);
-	gs_app_set_bundle_kind (app, AS_BUNDLE_KIND_APPIMAGE);
 
 	return success;
 }
