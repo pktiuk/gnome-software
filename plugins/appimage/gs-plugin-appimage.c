@@ -154,11 +154,11 @@ gboolean gs_plugin_file_to_app (GsPlugin *plugin,
 
 
 	g_autoptr (GsApp) app = NULL;
-	app = gs_app_new (
-		"NULL"); // NOTE: We set the ID down below, including the md5
-			 // from appimage_get_md5. hughsie recommends reverse
-			 // DNS, and it should match the desktop file and the id
-			 // in the AppStream XML
+	app = gs_app_new_appimage (
+		NULL); // NOTE: We set the ID down below, including the
+		       // md5 from appimage_get_md5. hughsie recommends
+		       // reverse DNS, and it should match the desktop
+		       // file and the id in the AppStream XML
 	load_from_desktop_file (
 		app,
 		extracted_desktop_file,
@@ -249,9 +249,7 @@ gboolean gs_plugin_file_to_app (GsPlugin *plugin,
 	}
 
 	gs_app_set_scope (app, AS_COMPONENT_SCOPE_USER);
-	gs_app_set_management_plugin (app, "appimage");
 	gs_app_set_kind (app, AS_COMPONENT_KIND_DESKTOP_APP);
-	gs_app_set_bundle_kind (app, AS_BUNDLE_KIND_APPIMAGE);
 	gs_app_set_local_file (app, file);
 	// gs_app_add_quirk (app, GS_APP_QUIRK_PROVENANCE); // QUESTION: How to
 	// mark "3rd party"? hughsie: PROVENANCE usually means the opposite,
@@ -343,11 +341,8 @@ gboolean gs_plugin_add_installed (GsPlugin *plugin,
 			g_autofree gchar *file_path = g_build_filename (
 				searched_path, filename, NULL);
 
-			g_autofree gchar *appimage_id =
-				get_id_from_desktop_filename (filename);
-			g_autoptr (GsApp) app = gs_app_new (appimage_id);
-			gs_app_set_metadata (
-				app, META_KEY_APPIMAGE_ID, filename);
+			g_autoptr (GsApp) app = gs_app_new_appimage (filename);
+
 			g_debug ("Figs_app_new filename: %s", filename);
 			load_from_desktop_file (app, file_path, error, TRUE);
 			gs_app_set_launchable (
