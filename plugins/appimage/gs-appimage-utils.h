@@ -40,3 +40,12 @@ gchar *get_id_from_desktop_filename (gchar *desktop_file_path);
  */
 gboolean
 refine_appimage_file (GsApp *app, GError **error, gchar *file_appimage_path);
+
+/**
+ * @brief refine GsApp
+ *
+ * META_KEY_APPIMAGE_ID must be set
+ *
+ * @return gboolean - TRUE when success
+ */
+gboolean refine_installed_app (GsApp *app, GError **error);

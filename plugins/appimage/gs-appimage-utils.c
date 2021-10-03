@@ -240,3 +240,36 @@ refine_appimage_file (GsApp *app, GError **error, gchar *file_appimage_path)
 	}
 	return TRUE;
 }
+
+gboolean refine_installed_app (GsApp *app, GError **error)
+{
+	g_debug ("Refining registered AppImage app");
+	gchar *desktop_id =
+		gs_app_get_metadata_item (app, META_KEY_APPIMAGE_ID);
+	if (desktop_id == NULL) {
+		g_set_error (error,
+			     GS_PLUGIN_ERROR,
+			     GS_PLUGIN_ERROR_FAILED,
+			     "Missing %s metadata item in GsApp object",
+			     META_KEY_APPIMAGE_ID);
+		return FALSE;
+	}
+
+	g_autofree gchar *desktop_file_path =
+		g_strdup_printf ("%s%s%s",
+				 g_get_user_data_dir(),
+				 "/applications/",
+				 desktop_id,
+				 NULL);
+
+	g_autofree gchar *app_id = get_id_from_desktop_filename (desktop_id);
+
+	gs_app_set_id (app, app_id);
+
+	gs_app_set_launchable (app, AS_LAUNCHABLE_KIND_DESKTOP_ID, desktop_id);
+	gs_app_set_state (app, GS_APP_STATE_INSTALLED);
+
+	load_from_desktop_file (app, desktop_file_path, error, TRUE);
+
+	return TRUE;
+}
