@@ -29,3 +29,14 @@ gboolean load_from_desktop_file (GsApp *app,
 				 gboolean is_installed);
 
 gchar *get_id_from_desktop_filename (gchar *desktop_file_path);
+
+/**
+ * @brief refine GsApp using data from AppImage file
+ *
+ * @param app
+ * @param error
+ * @param appimage_file_path - path to AppImage file
+ * @return gboolean
+ */
+gboolean
+refine_appimage_file (GsApp *app, GError **error, gchar *file_appimage_path);

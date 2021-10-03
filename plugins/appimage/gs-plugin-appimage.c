@@ -5,7 +5,6 @@
 
 #include <appimage/appimage.h> // From https://github.com/AppImage/AppImageKit
 #include <gnome-software.h>
-#include <sys/stat.h>
 
 #include "gs-appimage-utils.h"
 
@@ -109,10 +108,11 @@ gboolean gs_plugin_file_to_app (GsPlugin *plugin,
 				GCancellable *cancellable,
 				GError **error)
 {
+	g_autofree char *file_appimage_path = g_file_get_path (file);
 	g_debug ("AppImage gs_plugin_url_to_app");
-	g_debug ("file: %s", g_file_get_path (file));
+	g_debug ("file: %s", file_appimage_path);
 
-	int appimage_type = appimage_get_type (g_file_get_path (file), TRUE);
+	int appimage_type = appimage_get_type (file_appimage_path, FALSE);
 	g_debug ("AppImage type: %i", appimage_type);
 
 	/* Error if we cannot determine the type of the AppImage */
@@ -126,44 +126,21 @@ gboolean gs_plugin_file_to_app (GsPlugin *plugin,
 		return FALSE;
 	}
 
-	/* Extract the desktop file from the AppImage */
-	char **files = appimage_list_files (g_file_get_path (file));
-	gchar *desktop_file = NULL;
-	gchar *extracted_desktop_file =
-		"/tmp/gs-plugin-appimage/application.desktop";
-	for (int i = 0; files[i] != NULL; i++) {
-		// g_debug("AppImage file: %s", files[i]);
-		if (g_str_has_suffix (files[i], ".desktop")) {
-			desktop_file = files[i];
-			g_debug ("AppImage desktop file: %s", desktop_file);
-			break;
-		}
-	}
-	/* Exit if we cannot find the desktop file */
-	if (desktop_file == NULL) {
-		g_set_error (error,
-			     GS_PLUGIN_ERROR,
-			     GS_PLUGIN_ERROR_FAILED,
-			     "AppImage desktop file not found");
-		appimage_string_list_free (files);
-		return FALSE;
-	}
-	/* Extract desktop file to temporary location */
-	appimage_extract_file_following_symlinks (
-		g_file_get_path (file), desktop_file, extracted_desktop_file);
-
-
 	g_autoptr (GsApp) app = NULL;
-	app = gs_app_new_appimage (
-		NULL); // NOTE: We set the ID down below, including the
-		       // md5 from appimage_get_md5. hughsie recommends
-		       // reverse DNS, and it should match the desktop
-		       // file and the id in the AppStream XML
-	load_from_desktop_file (
-		app,
-		extracted_desktop_file,
-		error,
-		appimage_is_registered_in_system (g_file_get_path (file)));
+
+	if (appimage_is_registered_in_system (file_appimage_path)) {
+
+		// TODO
+	} else {
+		app = gs_app_new_appimage (
+			NULL); // NOTE: We set the ID down below, including the
+			       // md5 from appimage_get_md5. hughsie recommends
+			       // reverse DNS, and it should match the desktop
+			       // file and the id in the AppStream XML
+		if (!refine_appimage_file (app, error, file_appimage_path))
+			return FALSE;
+	}
+
 
 	/* TODO: AppStream
 	 *    Save an AppStream-format XML file in either
@@ -216,93 +193,11 @@ gboolean gs_plugin_file_to_app (GsPlugin *plugin,
 	 * to optimise anything
 	 */
 
-	g_autofree gchar *md5 = appimage_get_md5 (g_file_get_path (file));
-
-	gchar *extracted_appstream_file =
-		"/tmp/gs-plugin-appimage/application.metainfo.xml";
-	g_debug ("AppImage AppStream file to be extracted to: %s",
-		 extracted_appstream_file);
-
-	// Extract the AppStream file from the AppImage
-	g_autofree gchar *appstream_file = NULL;
-
-	for (int i = 0; files[i] != NULL; i++) {
-		// g_debug ("AppImage file: %s", files[i]);
-		if (g_str_has_suffix (files[i], ".metainfo.xml")
-		    || g_str_has_suffix (files[i], ".appdata.xml")) {
-			appstream_file = files[i];
-			g_debug ("AppImage AppStream file: %s", appstream_file);
-			break;
-		}
-	}
-
-	if (appstream_file == NULL) {
-		g_debug (
-			"AppImage AppStream file not found in AppImage; hence not extracting");
-	} else {
-		// Extract AppStream file
-		g_debug ("AppImage extracting AppStream file");
-		appimage_extract_file_following_symlinks (
-			g_file_get_path (file),
-			appstream_file,
-			extracted_appstream_file);
-	}
-
-	gs_app_set_scope (app, AS_COMPONENT_SCOPE_USER);
-	gs_app_set_kind (app, AS_COMPONENT_KIND_DESKTOP_APP);
-	gs_app_set_local_file (app, file);
-	// gs_app_add_quirk (app, GS_APP_QUIRK_PROVENANCE); // QUESTION: How to
-	// mark "3rd party"? hughsie: PROVENANCE usually means the opposite,
-	// e.g. it's from the distro gs_app_set_state (app,
-	// GS_APP_STATE_AVAILABLE_LOCAL);
-
-
-	/* Get the size of the AppImage on disk */
-	struct stat st;
-	if (lstat (g_file_get_path (file), &st) == -1) {
-		g_debug ("Could not determine AppImage file size");
-		return FALSE;
-	}
-	gs_app_set_size_installed (app, st.st_size);
-	gs_app_set_size_download (app, st.st_size);
-
-	/* Check if this AppImage is already integrated in the system in which
-	 * case we treat it as "installed */
-
-	g_autofree gchar *partial_path =
-		g_strdup_printf ("applications/appimagekit_%s-%s",
-				 md5,
-				 g_path_get_basename (desktop_file));
-
-	gs_app_set_metadata (app, META_KEY_APPIMAGE_ID, partial_path + 13);
-	g_autofree gchar *appimage_integrated_desktop_file_path =
-		g_build_filename (g_get_user_data_dir(), partial_path, NULL);
-	g_autofree gchar *appimage_id =
-		get_id_from_desktop_filename (partial_path);
-	gs_app_set_id (app,
-		       appimage_id); // This makes it
-				     // use the desktop
-				     // file and icon
-				     // already
-				     // integrated into
-				     // the system
-
-	if (g_file_test (appimage_integrated_desktop_file_path,
-			 G_FILE_TEST_EXISTS)) {
-		g_debug ("AppImage is already integrated at %s",
-			 appimage_integrated_desktop_file_path);
-		gs_app_set_state (app, GS_APP_STATE_INSTALLED);
-	} else {
-		g_debug ("AppImage is not integrated yet");
-		gs_app_set_state (app, GS_APP_STATE_AVAILABLE_LOCAL);
-	}
-
 	g_debug ("AppImage gs_app_is_installed: %i", gs_app_is_installed (app));
 	if (!gs_app_is_installed (app)) {
 		gs_app_add_source_id (app, "AppImage");
 		gs_app_add_source (app, g_file_get_path (file));
 	}
-	gs_app_set_origin (app, "AppImage");
 
 	// QUESTION: "Install" doesn't really cut it. For AppImages, we would
 	// want "Move to /Applications", "Move to $HOME/Applications", etc. Is

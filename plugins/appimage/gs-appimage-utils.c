@@ -1,5 +1,7 @@
 #include "gs-appimage-utils.h"
 
+#include <sys/stat.h>
+
 GsApp *gs_app_new_appimage (const gchar *appimage_id)
 {
 	GsApp *app = NULL;
@@ -110,4 +112,131 @@ gchar *get_id_from_desktop_filename (gchar *desktop_file_path)
 			appimage_id, 0, APPIMAGE_NAME_PREFIX_LEN);
 
 	return g_strdup (appimage_id->str);
+}
+
+gboolean
+refine_appimage_file (GsApp *app, GError **error, gchar *file_appimage_path)
+{
+	g_debug ("Refining app using data from AppImage file");
+	if (file_appimage_path == NULL) {
+		g_set_error (error,
+			     GS_PLUGIN_ERROR,
+			     GS_PLUGIN_ERROR_FAILED,
+			     "No path to AppImage file is set");
+		return FALSE;
+	}
+
+	/* Extract the desktop file from the AppImage */
+	char **files = appimage_list_files (file_appimage_path);
+	gchar *desktop_file = NULL;
+	gchar *extracted_desktop_file =
+		"/tmp/gs-plugin-appimage/application.desktop";
+	for (int i = 0; files[i] != NULL; i++) {
+		// g_debug("AppImage file: %s", files[i]);
+		if (g_str_has_suffix (files[i], ".desktop")) {
+			desktop_file = files[i];
+			g_debug ("AppImage desktop file: %s", desktop_file);
+			break;
+		}
+	}
+	/* Exit if we cannot find the desktop file */
+	if (desktop_file == NULL) {
+		g_set_error (error,
+			     GS_PLUGIN_ERROR,
+			     GS_PLUGIN_ERROR_FAILED,
+			     "AppImage desktop file not found");
+		appimage_string_list_free (files);
+		return FALSE;
+	}
+	/* Extract desktop file to temporary location */
+	appimage_extract_file_following_symlinks (
+		file_appimage_path, desktop_file, extracted_desktop_file);
+
+
+	load_from_desktop_file (
+		app,
+		extracted_desktop_file,
+		error,
+		appimage_is_registered_in_system (file_appimage_path));
+
+	g_autofree gchar *md5 = appimage_get_md5 (file_appimage_path);
+
+	gchar *extracted_appstream_file =
+		"/tmp/gs-plugin-appimage/application.metainfo.xml";
+	g_debug ("AppImage AppStream file to be extracted to: %s",
+		 extracted_appstream_file);
+
+	// Extract the AppStream file from the AppImage
+	g_autofree gchar *appstream_file = NULL;
+
+	for (int i = 0; files[i] != NULL; i++) {
+		// g_debug ("AppImage file: %s", files[i]);
+		if (g_str_has_suffix (files[i], ".metainfo.xml")
+		    || g_str_has_suffix (files[i], ".appdata.xml")) {
+			appstream_file = files[i];
+			g_debug ("AppImage AppStream file: %s", appstream_file);
+			break;
+		}
+	}
+
+	if (appstream_file == NULL) {
+		g_debug (
+			"AppImage AppStream file not found in AppImage; hence not extracting");
+	} else {
+		// Extract AppStream file
+		g_debug ("AppImage extracting AppStream file");
+		appimage_extract_file_following_symlinks (
+			file_appimage_path,
+			appstream_file,
+			extracted_appstream_file);
+	}
+
+	gs_app_set_scope (app, AS_COMPONENT_SCOPE_USER);
+	gs_app_set_kind (app, AS_COMPONENT_KIND_DESKTOP_APP);
+	gs_app_set_local_file (
+		app, g_file_new_build_filename (file_appimage_path, NULL));
+	// gs_app_add_quirk (app, GS_APP_QUIRK_PROVENANCE); // QUESTION: How to
+	// mark "3rd party"? hughsie: PROVENANCE usually means the opposite,
+	// e.g. it's from the distro gs_app_set_state (app,
+	// GS_APP_STATE_AVAILABLE_LOCAL);
+
+
+	/* Get the size of the AppImage on disk */
+	struct stat st;
+	if (lstat (file_appimage_path, &st) == -1) {
+		g_debug ("Could not determine AppImage file size");
+		return FALSE;
+	}
+	gs_app_set_size_installed(app, GS_SIZE_TYPE_VALID, st.st_size);
+	gs_app_set_size_download(app, GS_SIZE_TYPE_VALID, st.st_size);
+
+	g_autofree gchar *partial_path =
+		g_strdup_printf ("applications/appimagekit_%s-%s",
+				 md5,
+				 g_path_get_basename (desktop_file));
+
+	gs_app_set_metadata (app, META_KEY_APPIMAGE_ID, partial_path + 13);
+	g_autofree gchar *appimage_integrated_desktop_file_path =
+		g_build_filename (g_get_user_data_dir(), partial_path, NULL);
+	g_autofree gchar *appimage_id =
+		get_id_from_desktop_filename (partial_path);
+	gs_app_set_id (app,
+		       appimage_id); // This makes it
+				     // use the desktop
+				     // file and icon
+				     // already
+				     // integrated into
+				     // the system
+
+	/* Check if this AppImage is already integrated in the system in which
+	 * case we treat it as "installed */
+	if (appimage_is_registered_in_system (file_appimage_path)) {
+		g_debug ("AppImage is already integrated at %s",
+			 appimage_integrated_desktop_file_path);
+		gs_app_set_state (app, GS_APP_STATE_INSTALLED);
+	} else {
+		g_debug ("AppImage is not integrated yet");
+		gs_app_set_state (app, GS_APP_STATE_AVAILABLE_LOCAL);
+	}
+	return TRUE;
 }
