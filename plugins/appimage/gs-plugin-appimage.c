@@ -216,9 +216,6 @@ gboolean gs_plugin_file_to_app (GsPlugin *plugin,
 	/* return new app */
 	gs_app_list_add (list, app);
 
-	// appimage_string_list_free(files); // FIXME: This results in a
-	// segfault!
-
 	return TRUE;
 }
 

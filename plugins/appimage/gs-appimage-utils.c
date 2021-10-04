@@ -167,7 +167,7 @@ refine_appimage_file (GsApp *app, GError **error, gchar *file_appimage_path)
 		 extracted_appstream_file);
 
 	// Extract the AppStream file from the AppImage
-	g_autofree gchar *appstream_file = NULL;
+	gchar *appstream_file = NULL;
 
 	for (int i = 0; files[i] != NULL; i++) {
 		// g_debug ("AppImage file: %s", files[i]);
@@ -238,6 +238,8 @@ refine_appimage_file (GsApp *app, GError **error, gchar *file_appimage_path)
 		g_debug ("AppImage is not integrated yet");
 		gs_app_set_state (app, GS_APP_STATE_AVAILABLE_LOCAL);
 	}
+
+	appimage_string_list_free (files);
 	return TRUE;
 }
 
