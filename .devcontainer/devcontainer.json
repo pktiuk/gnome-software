@@ -1,0 +1,11 @@
+{
+  "image": "gnomesoftware:my_plugin",
+  "containerEnv": {
+    "DISPLAY": "${localEnv:DISPLAY}"
+},
+"runArgs": [
+        "--net", "host", 
+        "-e", "DISPLAY=${env:DISPLAY}",
+        "-v", "/tmp/.X11-unix:/tmp/.X11-unix"
+],
+}
