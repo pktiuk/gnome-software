@@ -22,6 +22,46 @@ G_DEFINE_TYPE (GsPluginDpkg, gs_plugin_dpkg, GS_TYPE_PLUGIN)
 
 #define DPKG_DEB_BINARY		"/usr/bin/dpkg-deb"
 
+gboolean load_data_from_appstream(GFile *file, GsApp *app)
+{
+	g_autofree gchar *output = NULL;
+	g_autofree gchar *error = NULL;
+	g_auto(GStrv) argv = NULL;
+	/*get appdata path dpkg-deb --contents ./file.deb */
+	argv = g_new0(gchar *, 3);
+	argv[0] = g_strdup(DPKG_DEB_BINARY);
+	argv[1] = g_strdup("--contents");
+	argv[2] = g_file_get_path(file);
+	if (!g_spawn_sync(NULL, argv, NULL,
+					  G_SPAWN_SEARCH_PATH | G_SPAWN_STDERR_TO_DEV_NULL,
+					  NULL, NULL, &output, NULL, NULL, &error))
+	{
+		gs_utils_error_convert_gio(error);
+		return FALSE;
+	}
+
+	/*searching for .appdata.xml*/
+	g_auto(GStrv) tokens = g_strsplit(output, "\n", 0);
+	gchar* appdata_location = NULL;
+	for (guint i = 0; i < g_strv_length(tokens); i++)
+	{
+		if (g_str_has_suffix(tokens[i],".appdata.xml"))
+		{
+			appdata_location = tokens[i];
+			break;
+		}
+	}
+	if (appdata_location==NULL)
+		return FALSE;
+
+	/* extract appdata.xml */
+	argv = g_new0(gchar *, 5); /*dpkg-deb --fsys-tarfile ./file.deb | tar -xvO ./path*/
+
+	/*load to data to app object*/
+
+	return TRUE;
+}
+
 static void
 gs_plugin_dpkg_init (GsPluginDpkg *self)
 {

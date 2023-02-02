@@ -17,3 +17,5 @@ subprojects/sassc/
 subprojects/sysprof/
 subprojects/wayland-protocols.wrap
 subprojects/wayland-protocols/
+install/
+.vscode/
